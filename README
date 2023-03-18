@@ -1,0 +1,18 @@
+WARNING! This program is for educational use only and has not been vetted for
+correctness, conformity, or undefined behavior. Do not use this in a production
+environment.
+
+This code implements a simple SHA256 hashing utility. Clarity over performance
+is emphasized. Testing is limited to Intel x86 and Apple Silicon on macOS.
+While the code is written in pure C++ and should be portable, no such promise
+is made.
+
+The standard being implimented can be found in FIPS PUB 180-4 found at
+https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
+
+To compile the source, simply type:
+
+make
+
+At the command line prompt.
+
