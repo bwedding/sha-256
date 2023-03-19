@@ -361,7 +361,6 @@ Digest hashDigest(const Digest& d) {
 
     int i = 0;
     for (auto w : d) B[i++] = w;
-    i = 0;
     for (auto w : pad) B[i++] = w;
 
     Schedule s = schedule(B, 0);
