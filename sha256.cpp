@@ -8,6 +8,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <vector>
+#include <array>
 #include <valarray>
 #include <string>
 #include <iostream>
@@ -28,11 +29,11 @@ public:
 };
 
 typedef uint32_t Word;
-typedef const vector<Word> SHA256_Constants;
-typedef Vec<Word> Digest;
+typedef const array<Word,64> SHA256_Constants;
+typedef array<Word, 8> Digest;
 typedef Vec<unsigned char> Message;
-typedef Vec<Word> Block;
-typedef Vec<Word> Schedule;
+typedef array<Word,16> Block;
+typedef array<Word, 64> Schedule;
 
 string wordToHexString(Word w) {
     const char lut[] = "0123456789abcdef";
@@ -253,9 +254,10 @@ const Message pad(uint64_t l) {
 // Prepare the message schedule
 
 Schedule schedule(const Block& M, int blocknum) {
-    Schedule W;
-
-    W.reserve(64);
+    Schedule W = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
     cout << "Block " << blocknum << ":" << endl;
     string bits = "";
@@ -271,14 +273,14 @@ Schedule schedule(const Block& M, int blocknum) {
     int t = 0;
 
     do {
-        W.push_back(M[t]);
+        W[t] = M[t];
         cout << "W" << t << ": " << wordToBinaryString(M[t]) 
 	     << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
         t++;
     } while(t < 16);
     do {
         Word w = addmod32({sigma1(W[t-2]),W[t-7],sigma0(W[t-15]),W[t-16]});
-        W.push_back(w);
+        W[t] = w;
         cout << "W" << t << ": " << wordToBinaryString(w) 
 	     << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
         t++;
@@ -328,9 +330,8 @@ Digest message(Message& msg) {
     // Parse the message 64 bytes at a time and process each block
     int i = 0, j = 0, k = 0;
     do {
-        Block B = {};
+        Block B = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
         Word w = 0;
-        B.reserve(16);
         
         do {
 	    unsigned char a, b, c, d;
@@ -339,12 +340,12 @@ Digest message(Message& msg) {
             w = w | b; w <<= 8;
             w = w | c; w <<= 8;
             w = w | d;
-            B.push_back(w);
+            B[j] = w;
             w = 0;
             j++;
         } while (j < 16);
 
-        Schedule s = schedule(B,k++);
+        Schedule s = schedule(B, k++);
         digest = runschedule(s, digest);
 	j = 0;
     } while (i < msg.size());
@@ -356,13 +357,14 @@ Digest hashDigest(const Digest& d) {
     Digest digest = H0;
     const Digest pad = {0x80000000,0x00000000,0x00000000,0x00000000,
                         0x00000000,0x00000000,0x00000000,0x00000200};
-    Block B = {};
-    B.reserve(16);
+    Block B = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-    for (auto w : d) B.push_back(w);
-    for (auto w : pad) B.push_back(w);
+    int i = 0;
+    for (auto w : d) B[i++] = w;
+    i = 0;
+    for (auto w : pad) B[i++] = w;
 
-    Schedule s = schedule(B,0);
+    Schedule s = schedule(B, 0);
     return runschedule(s, digest);
 }
 
