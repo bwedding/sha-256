@@ -28,14 +28,14 @@ public:
         { return vector<T>::at(i); }
 };
 
-typedef uint32_t Word;
-typedef const array<Word,64> SHA256_Constants;
-typedef array<Word, 8> Digest;
-typedef Vec<unsigned char> Message;
-typedef array<Word,16> Block;
-typedef array<Word, 64> Schedule;
+using Word = uint32_t;
+using SHA256_Constants = array<Word,64>;
+using Digest = array<Word, 8>;
+using Message = Vec<unsigned char>;
+using Block = array<Word,16>;
+using Schedule = array<Word, 64>;
 
-string wordToHexString(Word w) {
+inline string wordToHexString(Word w) {
     const char lut[] = "0123456789abcdef";
     const Word nibbles[] = {0xf0000000,0x0f000000,0x00f00000,0x000f0000,
         0x0000f000,0x00000f00,0x000000f0,0x0000000f};
@@ -51,7 +51,7 @@ string wordToHexString(Word w) {
     return hex;
 }
 
-string wordToBinaryString(Word w) {
+inline string wordToBinaryString(Word w) {
     string bits = "";
 
     for (char j = 0; j < 32; j++) {
@@ -63,7 +63,7 @@ string wordToBinaryString(Word w) {
     return bits;
 }
 
-string byteToBinaryString(unsigned char b) {
+inline string byteToBinaryString(unsigned char b) {
     string bits = "";
 
     for (char j = 0; j < 8; j++) {
@@ -75,35 +75,41 @@ string byteToBinaryString(unsigned char b) {
     return bits;
 }
 
-string getDigestAsHex(const Digest& digest) {
+template <typename T>
+inline string getObjectAsBin(const T& object) {
+    string ret = "";
+
+    for (auto w : object) ret += wordToBinaryString(w);
+
+    return ret;
+}
+
+using GetDigestAsBin = string(*)(const Digest&);
+GetDigestAsBin getDigestAsBin = getObjectAsBin<Digest>;
+
+using GetBlockAsBin = string(*)(const Block&);
+GetBlockAsBin getBlockAsBin = getObjectAsBin<Block>;
+
+using GetScheduleAsBin = string(*)(const Schedule&);
+GetScheduleAsBin getScheduleAsBin = getObjectAsBin<Schedule>;
+
+template <typename T>
+inline string getObjectAsHex(const T& object) {
     string hex = "";
 
-    for (auto w : digest) {
-        hex += wordToHexString(w);
-    }
-   
+    for (auto w : object) hex += wordToHexString(w);
+
     return hex;
 }
 
-string getDigestAsBin(const Digest& digest) {
-    string bin = "";
+using GetDigestAsHex = string(*)(const Digest&);
+GetDigestAsHex getDigestAsHex = getObjectAsHex<Digest>;
 
-    for (auto w : digest) {
-        bin += wordToBinaryString(w);
-    }
+using GetBlockAsHex = string(*)(const Block&);
+GetBlockAsHex getBlockAsHex = getObjectAsHex<Block>;
 
-    return bin;
-}
-
-string getBlockAsBin(const Block& b) {
-    string bits = "";
-
-    for (auto w : b) {
-        bits += wordToBinaryString(w);
-    }
-    
-    return bits;
-}   
+using GetScheduleAsHex = string(*)(const Schedule&);
+GetScheduleAsHex getScheduleAsHex = getObjectAsHex<Schedule>;
 
 inline Word reverseByteOrder(Word x) {
     return ((x << 24) & 0xff000000) |
