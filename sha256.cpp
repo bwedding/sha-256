@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
-//		     SHA-256 As defined by NIST.FIPS.180-4                   //
+//          	     SHA-256 As defined by NIST.FIPS.180-4                   //
 //                     A great visualizer can be found at                    //
 //                                                                           //
 //                        https://sha256algorithm.com                        //
@@ -218,21 +218,21 @@ const Message pad(uint64_t l) {
 
     if (l == 0) {
         padding.resize(56,0);
-	cout << "Zero length message." << endl;
+	    cout << "Zero length message." << endl;
     } else if (l % 512 == 0) {
-	cout << "Message is already mod 512 length." << endl;
-	return padding = {};
+	    cout << "Message is already mod 512 length." << endl;
+	    return padding = {};
     } else if (l % 512  > 440) {
-	cout << "Last message block doesn't have enough room "
-	     << "for padding." << endl
-	     << "We will add an extra number of zeros to bring the " << endl
-	     << "message length up to mod 512 length." << endl << endl;
-	int k = 960 - (l % 1024 + 1); // pad remainder of block and add new block
-	padding.resize(k/8 + 1, 0);
+	    cout << "Last message block doesn't have enough room "
+	         << "for padding." << endl
+	         << "We will add an extra number of zeros to bring the " << endl
+	         << "message length up to mod 512 length." << endl << endl;
+	    int k = 960 - (l % 1024 + 1); // pad remainder of block and add new block
+	    padding.resize(k/8 + 1, 0);
     } 
     else {
-	cout << "Add 448 - (l % 512 + 1) zero bits to padding." << endl;
-	int k = 448 - (l % 512 + 1);
+	    cout << "Add 448 - (l % 512 + 1) zero bits to padding." << endl;
+	    int k = 448 - (l % 512 + 1);
         padding.resize(k/8 + 1, 0);
     }
 
@@ -261,9 +261,9 @@ const Message pad(uint64_t l) {
 
 Schedule schedule(const Block& M, int blocknum) {
     Schedule W = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+         		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
     cout << "Block " << blocknum << ":" << endl;
     string bits = "";
@@ -281,14 +281,14 @@ Schedule schedule(const Block& M, int blocknum) {
     do {
         W[t] = M[t];
         cout << "W" << t << ": " << wordToBinaryString(M[t]) 
-	     << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
+	         << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
         t++;
     } while(t < 16);
     do {
         Word w = addmod32({sigma1(W[t-2]),W[t-7],sigma0(W[t-15]),W[t-16]});
         W[t] = w;
         cout << "W" << t << ": " << wordToBinaryString(w) 
-	     << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
+	         << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
         t++;
     } while (t < 64);
 
@@ -299,7 +299,7 @@ Schedule schedule(const Block& M, int blocknum) {
 
 Digest runschedule(const Schedule& W, Digest& H) {
     Word a = H[0], b = H[1], c = H[2], d = H[3],
-    e = H[4], f = H[5], g = H[6], h = H[7];
+         e = H[4], f = H[5], g = H[6], h = H[7];
     
     for (int t = 0; t < 64; t++) {
         Word T1 = addmod32({h,SIGMA1(e),Ch(e,f,g),K[t],W[t]});
@@ -340,7 +340,7 @@ Digest message(Message& msg) {
         Word w = 0;
         
         do {
-	    unsigned char a, b, c, d;
+	        unsigned char a, b, c, d;
             a = msg[i++]; b = msg[i++]; c = msg[i++]; d = msg[i++];
             w = w | a; w <<= 8;
             w = w | b; w <<= 8;
@@ -353,7 +353,7 @@ Digest message(Message& msg) {
 
         Schedule s = schedule(B, k++);
         digest = runschedule(s, digest);
-	j = 0;
+	    j = 0;
     } while (i < msg.size());
     
     return digest;
@@ -387,14 +387,14 @@ try {
     vector<string> args = arguments(argc, argv);
 
     if (argc == 1) {
-	cout << "SHA-256 algorithm for educational purposes only!" << endl
-	     << endl << "$ sha256 [-] file1 [file2 ...]" << endl << endl
-	     << "Reads each file and provides a SHA-256 digest." << endl
-	     << "If the first argument is a - then each file will be " << endl
-	     << "hashed twice. Bitcoin does this sha256(sha256(data))." << endl
-	     << endl << "The output is a text hex representation of the "
-	     << "SHA-256 message digest." << endl;
-	return 0;
+	    cout << "SHA-256 algorithm for educational purposes only!" << endl
+	         << endl << "$ sha256 [-] file1 [file2 ...]" << endl << endl
+	         << "Reads each file and provides a SHA-256 digest." << endl
+	         << "If the first argument is a - then each file will be " << endl
+	         << "hashed twice. Bitcoin does this sha256(sha256(data))." << endl
+	         << endl << "The output is a text hex representation of the "
+	         << "SHA-256 message digest." << endl;
+	    return 0;
     }
 
     Message msg = {};
@@ -405,14 +405,14 @@ try {
 	char ch = 0;
 
 	if (file == string("-")) {
-            doublehash = true;
+        doublehash = true;
 	    continue;
 	}
 
-        ifstream infile(file, ios::binary);
+    ifstream infile(file, ios::binary);
 
-        while (infile.read(&ch, 1))
-            msg.push_back((unsigned char)ch);
+    while (infile.read(&ch, 1))
+        msg.push_back((unsigned char)ch);
 
 	infile.close();
         Digest digest = message(msg);
@@ -421,13 +421,13 @@ try {
 
 	cout << file;
 	if (doublehash) cout << " double hashed";
-	cout << endl;
+	    cout << endl;
         cout << "Digest = " << getDigestAsHex(digest) << endl;
         cout << "Binary =" << endl
-	     << replaceEighthSpaceWithNewline(
-		   insertSpaceAfterEighthChar(getDigestAsBin(digest)))
-	     << endl << endl;
-	msg = {};
+	         << replaceEighthSpaceWithNewline(
+		        insertSpaceAfterEighthChar(getDigestAsBin(digest)))
+	         << endl << endl;
+	    msg = {};
     }
 }
 catch (out_of_range) {
@@ -439,3 +439,4 @@ catch (...) {
 
     return 0;
 }
+
