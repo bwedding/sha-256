@@ -9,7 +9,6 @@
 
 #include <vector>
 #include <array>
-#include <valarray>
 #include <string>
 #include <iostream>
 #include <iomanip>
