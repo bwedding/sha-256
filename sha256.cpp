@@ -83,10 +83,10 @@ static const Digest H0 = {
 // https://crypto.stackexchange.com/questions/5358/what-does-maj-and-ch-mean-in-sha-256-algorithm
 // I have no idea what Choose and Major mean in hashing functions.
 
-inline Word Ch(Word x, Word y, Word z) {return (x&y)^((~x)&z);}         // 4.2
-inline Word Maj(Word x, Word y, Word z) {return (x&y)^(x&z)^(y&z);}     // 4.3
+inline Word Ch(Word x, Word y, Word z) {return (x&y)^((~x)&z);}             // 4.2
+inline Word Maj(Word x, Word y, Word z) {return (x&y)^(x&z)^(y&z);}         // 4.3
 
-inline Word sigma_4_4(Word x) {return x.rotr(2) ^ x.rotr(13) ^ x.rotr(22);}  // 4.4
+inline Word sigma_4_4(Word x) {return x.rotr(2) ^ x.rotr(13) ^ x.rotr(22);} // 4.4
 inline Word sigma_4_5(Word x) {return x.rotr(6) ^ x.rotr(11) ^ x.rotr(25);} // 4.5
 inline Word sigma_4_6(Word x) {return x.rotr(7) ^ x.rotr(18) ^ (x >> 3);}   // 4.6
 inline Word sigma_4_7(Word x) {return x.rotr(17) ^ x.rotr(19) ^ (x >> 10);} // 4.7
@@ -136,7 +136,6 @@ const Message pad(uint64_t l) {
 
 // 6.2.2 SHA-256 Hash Computation
 // Prepare the message schedule
-
 Schedule schedule(const Block& M, int blocknum) {
     Schedule W = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -216,7 +215,7 @@ Digest message(Message& msg) {
     return digest;
 }
 
-// This is a convenience function. Bitcoin uses sha256(sha256(msg)).
+// This is a convenience function. Bitcoin uses sha256(sha256(data)).
 // Since digests are a fixed 256 bit length, we already know the padding.
 Digest hashDigest(const Digest& d) {
     Digest digest = H0;
@@ -270,16 +269,17 @@ int main(int argc, char* argv[]) {
             }
 
             ifstream infile(file, ios::binary);
-
             while (infile.read(&ch, 1))
                 msg.push_back((unsigned char)ch);
 
             infile.close();
+
             Digest digest = message(msg);
 
             if (doublehash) digest = hashDigest(digest);
 
             if (doublehash) cout << " double hashed";
+
             cout << "SHA-256 (" << file << ") = ";
             for (auto w : digest)
                 cout << setw(8) << setfill('0') << hex << w;
