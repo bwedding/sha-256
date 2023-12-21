@@ -12,10 +12,14 @@
 #include <valarray>
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
+#include "Word.h"
 
 using namespace std;
 
+// Convinience type to allow accessing vector elements using C style array
+// accessor notation, eg a[i].
 template<typename T>
 class Vec : public std::vector<T> {
 public:
@@ -28,126 +32,12 @@ public:
     { return vector<T>::at(i); }
 };
 
-using Word = uint32_t;
+// Type aliases to match the wording in the NIST.FIPS.180-4 SHA-256 specification.
 using SHA256_Constants = array<Word,64>;
 using Digest = array<Word, 8>;
 using Message = Vec<unsigned char>;
 using Block = array<Word,16>;
 using Schedule = array<Word, 64>;
-
-inline string wordToHexString(Word w) {
-    const char lut[] = "0123456789abcdef";
-    const Word nibbles[] = {0xf0000000,0x0f000000,0x00f00000,0x000f0000,
-                            0x0000f000,0x00000f00,0x000000f0,0x0000000f};
-    const char shifts[] = {28,24,20,16,12,8,4,0};
-    string hex = "";
-
-    for (char j = 0; j < 8; j++) {
-        Word nibble = w & nibbles[j];
-        nibble >>= shifts[j];
-        hex += lut[nibble];
-    }
-
-    return hex;
-}
-
-inline string wordToBinaryString(Word w) {
-    string bits = "";
-
-    for (char j = 0; j < 32; j++) {
-        Word x = w & 0x80000000;
-        bits += x ? "1" : "0";
-        w <<= 1;
-    }
-
-    return bits;
-}
-
-inline string byteToBinaryString(unsigned char b) {
-    string bits = "";
-
-    for (char j = 0; j < 8; j++) {
-        int i = b & 0x80;
-        bits += i ? "1" : "0";
-        b <<= 1;
-    }
-
-    return bits;
-}
-
-template <typename T>
-inline string getObjectAsBin(const T& object) {
-    string ret = "";
-
-    for (auto w : object) ret += wordToBinaryString(w);
-
-    return ret;
-}
-
-using GetDigestAsBin = string(*)(const Digest&);
-GetDigestAsBin getDigestAsBin = getObjectAsBin<Digest>;
-
-using GetBlockAsBin = string(*)(const Block&);
-GetBlockAsBin getBlockAsBin = getObjectAsBin<Block>;
-
-using GetScheduleAsBin = string(*)(const Schedule&);
-GetScheduleAsBin getScheduleAsBin = getObjectAsBin<Schedule>;
-
-template <typename T>
-inline string getObjectAsHex(const T& object) {
-    string hex = "";
-
-    for (auto w : object) hex += wordToHexString(w);
-
-    return hex;
-}
-
-using GetDigestAsHex = string(*)(const Digest&);
-GetDigestAsHex getDigestAsHex = getObjectAsHex<Digest>;
-
-using GetBlockAsHex = string(*)(const Block&);
-GetBlockAsHex getBlockAsHex = getObjectAsHex<Block>;
-
-using GetScheduleAsHex = string(*)(const Schedule&);
-GetScheduleAsHex getScheduleAsHex = getObjectAsHex<Schedule>;
-
-inline Word reverseByteOrder(Word x) {
-    return ((x << 24) & 0xff000000) |
-           ((x << 8)  & 0x00ff0000) |
-           ((x >> 8)  & 0x0000ff00) |
-           ((x >> 24) & 0x000000ff);
-}
-
-string insertSpaceAfterEighthChar(string inputStr)
-{
-    auto iter = inputStr.begin() + 8;
-    while (iter != inputStr.end()) {
-        iter = inputStr.insert(iter, ' ');
-        iter += 9;
-    }
-    return inputStr;
-}
-
-string replaceEighthSpaceWithNewline(string inputStr)
-{
-    int spaceCount = 0;
-    for (int i = 0; i < inputStr.length(); i++) {
-        if (inputStr[i] == ' ') {
-            spaceCount++;
-            if (spaceCount == 8) {
-                inputStr[i] = '\n';
-                spaceCount = 0;
-            }
-        }
-    }
-    return inputStr;
-}
-
-inline Word addmod32(const valarray<uint64_t>& va) {
-    uint64_t t = va.sum();
-    Word w = t & 0xffffffff;
-    return w;
-}
 
 // Section 4.4.2 SHA-256 Constants
 //
@@ -155,7 +45,7 @@ inline Word addmod32(const valarray<uint64_t>& va) {
 // the cube roots of the first sixty-four prime numbers. In hex, these constant
 // words are (from left to right)
 
-SHA256_Constants K = {
+static const SHA256_Constants K = {
     0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,
     0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
     0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,
@@ -180,7 +70,7 @@ SHA256_Constants K = {
 // thirty-two bits of the fractional parts of the square roots of the first
 // eight prime numbers.
 
-const Digest H0 = {
+static const Digest H0 = {
     0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,
     0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19};
 
@@ -192,16 +82,15 @@ const Digest H0 = {
 //
 // Ch and Maj are apperently for Choose and Major, respectively.
 // https://crypto.stackexchange.com/questions/5358/what-does-maj-and-ch-mean-in-sha-256-algorithm
+// I have no idea what Choose and Major mean in hashing functions.
 
 inline Word Ch(Word x, Word y, Word z) {return (x&y)^((~x)&z);}         // 4.2
 inline Word Maj(Word x, Word y, Word z) {return (x&y)^(x&z)^(y&z);}     // 4.3
-inline Word ROTR(int n, Word x) {return (x>>n)|(x<<(32-n));}            // 3.2.4
-inline Word SHR(int n, Word x) {return (x>>n);}                         // 3.2.3
 
-inline Word SIGMA0(Word x) {return ROTR(2,x) ^ ROTR(13,x) ^ ROTR(22,x);} // 4.4
-inline Word SIGMA1(Word x) {return ROTR(6,x) ^ ROTR(11,x) ^ ROTR(25,x);} // 4.5
-inline Word sigma0(Word x) {return ROTR(7,x) ^ ROTR(18,x) ^ SHR(3,x);}   // 4.6
-inline Word sigma1(Word x) {return ROTR(17,x) ^ ROTR(19,x) ^ SHR(10,x);} // 4.7
+inline Word sigma_4_4(Word x) {return x.rotr(2) ^ x.rotr(13) ^ x.rotr(22);}  // 4.4
+inline Word sigma_4_5(Word x) {return x.rotr(6) ^ x.rotr(11) ^ x.rotr(25);} // 4.5
+inline Word sigma_4_6(Word x) {return x.rotr(7) ^ x.rotr(18) ^ (x >> 3);}   // 4.6
+inline Word sigma_4_7(Word x) {return x.rotr(17) ^ x.rotr(19) ^ (x >> 10);} // 4.7
 
 // 5.1 Padding The Message
 // The purpose of this padding is to ensure that the padded message is a multiple
@@ -213,25 +102,27 @@ const Message pad(uint64_t l) {
     Message padding = {0x80};
 
     if (l == 0) {
+        // A zero length message is an edge case, but it has to be dealt with.
         padding.resize(56,0);
-        cout << "Zero length message." << endl;
     } else if (l % 512 == 0) {
-        cout << "Message is already mod 512 length." << endl;
+        // This is our favorite case. The message is already a multiple of 512
+        // bits in length.
         return padding = {};
     } else if (l % 512  > 440) {
-        cout << "Last message block doesn't have enough room "
-        << "for padding." << endl
-        << "We will add an extra number of zeros to bring the " << endl
-        << "message length up to mod 512 length." << endl << endl;
-        int k = 960 - (l % 1024 + 1); // pad remainder of block and add new block
+        // This is an annoying case. The message requires padding and adding an
+        // extra 512 bit block to the end. Pad remainder of block and add new block
+        int k = 960 - (l % 1024 + 1);
         padding.resize(k/8 + 1, 0);
     } 
     else {
-        cout << "Add 448 - (l % 512 + 1) zero bits to padding." << endl;
+        // This is a typical case. We add a 1 bit and zeros plus the length
+        // of the message in bits.
         int k = 448 - (l % 512 + 1);
         padding.resize(k/8 + 1, 0);
     }
 
+    // For some reason, unions are discouraged in C++. However, this approach does
+    // work and I am lazy. Yes, this is a Doctor Who reference.
     union {
         uint64_t m;
         unsigned char b[8];
@@ -240,14 +131,6 @@ const Message pad(uint64_t l) {
     bad_wolf.m = l;
     // reverse byte order for little endian machines like x86 and Apple Si
     for (int i = 7; i > -1; i--) padding.push_back(bad_wolf.b[i]);
-
-    cout << "Padding bits:" << endl;
-    string b = "";
-    for (auto e : padding)
-    b += byteToBinaryString(e);
-    b = insertSpaceAfterEighthChar(b);
-    b = replaceEighthSpaceWithNewline(b);
-    cout << b << endl;
 
     return padding;
 }
@@ -261,59 +144,41 @@ Schedule schedule(const Block& M, int blocknum) {
                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-    cout << "Block " << blocknum << ":" << endl;
-    string bits = "";
-    for (auto w : M) {
-        bits += wordToBinaryString(w);
-    }
-
-    bits = insertSpaceAfterEighthChar(bits);
-    bits = replaceEighthSpaceWithNewline(bits);
-
-    cout << bits << endl << endl;
-
     int t = 0;
-
     do {
         W[t] = M[t];
-        cout << "W" << t << ": " << wordToBinaryString(M[t]) 
-             << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
         t++;
     } while(t < 16);
     do {
-        Word w = addmod32({sigma1(W[t-2]),W[t-7],sigma0(W[t-15]),W[t-16]});
+        Word w = sigma_4_7(W[t-2]) + W[t-7] + sigma_4_6(W[t-15]) + W[t-16];
         W[t] = w;
-        cout << "W" << t << ": " << wordToBinaryString(w) 
-             << " K" << t << ": " << wordToBinaryString(K[t]) << endl;
         t++;
     } while (t < 64);
-
-    cout << endl;
 
     return W;
 }
 
+// 6.2.2 SHA-256 Hash Computation
+// Run the message schedule
 Digest runschedule(const Schedule& W, Digest& H) {
-    Word a = H[0], b = H[1], c = H[2], d = H[3],
-         e = H[4], f = H[5], g = H[6], h = H[7];
+    Word a(H[0]), b(H[1]), c(H[2]), d(H[3]),
+         e(H[4]), f(H[5]), g(H[6]), h(H[7]);
 
     for (int t = 0; t < 64; t++) {
-        Word T1 = addmod32({h,SIGMA1(e),Ch(e,f,g),K[t],W[t]});
-        Word T2 = addmod32({SIGMA0(a),Maj(a,b,c)});
-        h = g; g = f; f = e; e = addmod32({d,T1}); d = c; c = b; 
-        b = a; a = addmod32({T1,T2});
+        Word T1(h + sigma_4_5(e) + Ch(e,f,g) + K[t] + W[t]);
+        Word T2(sigma_4_4(a) + Maj(a,b,c));
+        h = g; g = f; f = e; e = d + T1; d = c; c = b; 
+        b = a; a = T1 + T2;
     }
 
-    cout << endl;
-
-    H[0] = addmod32({a , H[0]});
-    H[1] = addmod32({b , H[1]});
-    H[2] = addmod32({c , H[2]});
-    H[3] = addmod32({d , H[3]});
-    H[4] = addmod32({e , H[4]});
-    H[5] = addmod32({f , H[5]});
-    H[6] = addmod32({g , H[6]});
-    H[7] = addmod32({h , H[7]});
+    H[0] = a + H[0];
+    H[1] = b + H[1];
+    H[2] = c + H[2];
+    H[3] = d + H[3];
+    H[4] = e + H[4];
+    H[5] = f + H[5];
+    H[6] = g + H[6];
+    H[7] = h + H[7];
 
     return H;
 }
@@ -325,9 +190,6 @@ Digest message(Message& msg) {
     const Message padding = pad(messagelength);
 
     for (auto e : padding) msg.push_back(e);
-
-    cout << "Message Length in bits: " << messagelength << "\n";
-    cout << "Padded Length in bits: " << msg.size() * 8 << "\n";
 
     // Parse the message 64 bytes at a time and process each block
     int i = 0, j = 0, k = 0;
@@ -355,6 +217,8 @@ Digest message(Message& msg) {
     return digest;
 }
 
+// This is a convenience function. Bitcoin uses sha256(sha256(msg)).
+// Since digests are a fixed 256 bit length, we already know the padding.
 Digest hashDigest(const Digest& d) {
     Digest digest = H0;
     const Digest pad = {0x80000000,0x00000000,0x00000000,0x00000000,
@@ -383,13 +247,14 @@ int main(int argc, char* argv[]) {
         vector<string> args = arguments(argc, argv);
 
         if (argc == 1) {
-            cout << "SHA-256 algorithm for educational purposes only!" << endl
-                 << endl << "$ sha256 [-] file1 [file2 ...]" << endl << endl
-                 << "Reads each file and provides a SHA-256 digest." << endl
-                 << "If the first argument is a - then each file will be " << endl
-                 << "hashed twice. Bitcoin does this sha256(sha256(data))." << endl
-                 << endl << "The output is a text hex representation of the "
-                 << "SHA-256 message digest." << endl;
+            cout << "SHA-256 algorithm for educational purposes only!\n"
+                 << "$ sha256 [-] file1 [file2 ...]\n\n"
+                 << "Reads each file and provides a SHA-256 digest.\n"
+                 << "The - argument can appear anywhere in the argument\n"
+                 << "list. Files appearing after the - will be double hashed.\n"
+                 << "Bitcoin does this sha256(sha256(data)).\n"
+                 << "The output is a text hex representation of the "
+                 << "SHA-256 message digest.\n";
             return 0;
         }
 
@@ -415,14 +280,12 @@ int main(int argc, char* argv[]) {
 
             if (doublehash) digest = hashDigest(digest);
 
-            cout << file;
             if (doublehash) cout << " double hashed";
+            cout << "SHA-256 (" << file << ") = ";
+            for (auto w : digest)
+                cout << setw(8) << setfill('0') << hex << w;
             cout << endl;
-            cout << "Digest = " << getDigestAsHex(digest) << endl;
-            cout << "Binary =" << endl
-                 << replaceEighthSpaceWithNewline(
-                       insertSpaceAfterEighthChar(getDigestAsBin(digest)))
-                 << endl << endl;
+
             msg = {};
         }
     }
