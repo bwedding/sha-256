@@ -1,11 +1,25 @@
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-//                   SHA-256 As defined by NIST.FIPS.180-4                   //
-//                     A great visualizer can be found at                    //
-//                                                                           //
-//                        https://sha256algorithm.com                        //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
+/*******************************************************************************
+ *                                  sha256.cpp                                 *
+ *                              Author: Fudmottin                              *
+ *                                                                             *
+ * This software is provided 'as-is', without any express or implied warranty. *
+ * In no event will the authors be held liable for any damages arising from    *
+ * the use of this software.                                                   *
+ *                                                                             *
+ * Permission is hereby granted, free of charge, to any person obtaining a     *
+ * copy of this software and associated documentation files (the "Software"),  *
+ * to deal in the Software without restriction, including without limitation   *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense and *
+ * or sell copies of the Software.                                             *
+ *                                                                             *
+ *                   SHA-256 As defined by NIST.FIPS.180-4                     *
+ *                     A great visualizer can be found at                      *
+ *                                                                             *
+ *                        https://sha256algorithm.com                          *
+ *                                                                             *
+ *              This file has been placed into The Public Domain               *
+ *                                                                             *
+ ******************************************************************************/
 
 #include <vector>
 #include <array>
@@ -78,25 +92,31 @@ static const Digest H0 = {
 // SHA-256 uses six logical functions, where each function operates on 32-bit
 // words which are represented as x, y, and z, The result of each function is
 // a new 32 bit word.
-//
-// Ch and Maj are apperently for Choose and Major, respectively.
-// https://crypto.stackexchange.com/questions/5358/what-does-maj-and-ch-mean-in-sha-256-algorithm
-// I have no idea what Choose and Major mean in hashing functions.
 
+// The 'Ch' function: This is short for "choose" and given three inputs x, y, z
+// returns bits from y where the corresponding bit in x is 1 and bits from z
+// where the corresponding bit in x is 0.
 inline Word Ch(Word x, Word y, Word z) {return (x&y)^((~x)&z);}             // 4.2
+
+// The 'Maj' function: Short for "majority", this function takes three inputs
+// x, y, z and for each bit index i if at least two of the bits xi, yi or zi
+// are set to 1 then so is the result mi.
 inline Word Maj(Word x, Word y, Word z) {return (x&y)^(x&z)^(y&z);}         // 4.3
 
+// The sigma functions: These are defined as bitwise operations on their input
+// word according to specific rules outlined in section 4 of NIST.FIPS.180-4.
+// They are used as part of generating a message schedule from a block of input
+// data when calculating a SHA-256 hash. The suffixes are the part of the
+// specification that defines each sigma function.
 inline Word sigma_4_4(Word x) {return x.rotr(2) ^ x.rotr(13) ^ x.rotr(22);} // 4.4
 inline Word sigma_4_5(Word x) {return x.rotr(6) ^ x.rotr(11) ^ x.rotr(25);} // 4.5
 inline Word sigma_4_6(Word x) {return x.rotr(7) ^ x.rotr(18) ^ (x >> 3);}   // 4.6
 inline Word sigma_4_7(Word x) {return x.rotr(17) ^ x.rotr(19) ^ (x >> 10);} // 4.7
 
-// 5.1 Padding The Message
-// The purpose of this padding is to ensure that the padded message is a multiple
-// of 512 bits. Padding can be inserted before hash computation begins on a
-// message, or at any other time during the hash computation prior to processing
-// the block(s) that will contain the padding.
-
+// 5.1 Padding The Message: The purpose of this padding is to ensure that the
+// padded message is a multiple of 512 bits. Padding can be inserted before hash
+// computation begins on a message, or at any other time during the hash computation
+// prior to processing the block(s) that will contain the padding.
 const Message pad(uint64_t l) {
     Message padding = {0x80};
 
@@ -121,22 +141,29 @@ const Message pad(uint64_t l) {
     }
 
     // For some reason, unions are discouraged in C++. However, this approach does
-    // work and I am lazy. Yes, this is a Doctor Who reference.
+    // work and I am lazy. Yes, bad_wolf is a Doctor Who reference.
     union {
         uint64_t m;
         unsigned char b[8];
     } bad_wolf;
 
     bad_wolf.m = l;
-    // reverse byte order for little endian machines like x86 and Apple Si
+
+    // Reverse byte order for little endian machines like x86 and Apple Si. Big
+    // endian architectures are not considered in this code for sake of simplicity.
     for (int i = 7; i > -1; i--) padding.push_back(bad_wolf.b[i]);
 
     return padding;
 }
 
-// 6.2.2 SHA-256 Hash Computation
-// Prepare the message schedule
-Schedule schedule(const Block& M, int blocknum) {
+// 6.2.2 SHA-256 Hash Computation:
+// The message is read into 512 bit (16 word) blocks which are in turn used
+// to create a 64 word schedule. Each word in the schedule is referred to
+// as Wt where t is from 0 to 63 inclusive. The schedule is the heart of
+// the algorithm as it is used to modify the initial hash value (H0) and
+// then each of the intermendiate digests produced when processing each
+// block.
+Schedule schedule(const Block& M) {
     Schedule W = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -156,8 +183,9 @@ Schedule schedule(const Block& M, int blocknum) {
     return W;
 }
 
-// 6.2.2 SHA-256 Hash Computation
-// Run the message schedule
+// 6.2.2 SHA-256 Hash Computation:
+// Run the message schedule. This does the work of producing the next
+// digest value from the current digest.
 Digest runschedule(const Schedule& W, Digest& H) {
     Word a(H[0]), b(H[1]), c(H[2]), d(H[3]),
          e(H[4]), f(H[5]), g(H[6]), h(H[7]);
@@ -181,16 +209,25 @@ Digest runschedule(const Schedule& W, Digest& H) {
     return H;
 }
 
+// This implementation processes the message in memory. For small
+// messages, that's fine. For larger messages, you would want to
+// use a slightly more complex method that keeps track of the
+// message size in bits as the blocks are read in. That would
+// also affect how the padding is done as it has to tack data
+// onto the end of the message so that it is an integer multiple
+// of 512 bits (16 words).
 Digest message(Message& msg) {
     uint64_t  messagelength = msg.size() * 8;
-    Digest digest = H0;
+    Digest digest = H0; // The initial digest value is set.
 
+    // The message padding is calculated and stored.
     const Message padding = pad(messagelength);
 
+    // The padding is added on to the end of the message.
     for (auto e : padding) msg.push_back(e);
 
-    // Parse the message 64 bytes at a time and process each block
-    int i = 0, j = 0, k = 0;
+    // Parse the message 64 bytes at a time and process each block.
+    int i = 0, j = 0;
     do {
         Block B = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
         Word w = 0;
@@ -207,7 +244,7 @@ Digest message(Message& msg) {
             j++;
         } while (j < 16);
 
-        Schedule s = schedule(B, k++);
+        Schedule s = schedule(B);
         digest = runschedule(s, digest);
         j = 0;
     } while (i < msg.size());
@@ -227,10 +264,12 @@ Digest hashDigest(const Digest& d) {
     for (auto w : d) B[i++] = w;
     for (auto w : pad) B[i++] = w;
 
-    Schedule s = schedule(B, 0);
+    Schedule s = schedule(B);
     return runschedule(s, digest);
 }
 
+// This is just a simple utility function to parse the comman line
+// arguments into a vector<string> type.
 vector<string> arguments(int argc, char* argv[]) {
     vector<string> res;
 
@@ -240,6 +279,12 @@ vector<string> arguments(int argc, char* argv[]) {
     return res;
 }
 
+// This implementation reads each file to be hashed into memory. This
+// works just fine for small files. Large files should be processed
+// by streaming the data which would change all the code above. In
+// practice, one would use a library function or utility like sha2
+// to calculate the hash/digest of a file. This is just an educational
+// example for acedemic purposes only.
 int main(int argc, char* argv[]) {
     try {
         vector<string> args = arguments(argc, argv);
@@ -288,6 +333,8 @@ int main(int argc, char* argv[]) {
             msg = {};
         }
     }
+    // Honestly if we catch an error, there is a bug somewhere in the
+    // code that I have not caught. Pun intended.
     catch (out_of_range) {
         cerr << "range error" << endl;
     }

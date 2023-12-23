@@ -38,12 +38,16 @@ private:
     static constexpr uint32_t ONE = 1; // Named constant
 
 public:
-    // Constructors
+    // Default constructor initializes internal representation (w) to zero.
     Word() : w(0) {}
+
+    // Constructor that allows initialization with an unsigned int value.
     Word(uint32_t val) : w(val) {}
-    // Copy Constructor
+
+    // Copy constructor which copies value from another Word object into this one.
     Word(const Word& other): w(other.w) {}
-    // Destructor
+
+    // Destructor - currently does nothing but included for completeness.
     ~Word() {}
 
     // Getter and Setter methods
