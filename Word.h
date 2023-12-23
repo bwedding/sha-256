@@ -1,15 +1,31 @@
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// The Word class a simple lightweight wrapper for uint32_t. It is intended  //
-// to work like a uint32_t for cryptography. That said, not every possible   //
-// conversion to uint32_t is defined. Sometimes it will be necessary to use  //
-// the get() method to return the wrapped uint32_t value. In addtion to      //
-// traditional get() and set() methods, assignment is supported.             //
-//                                                                           //
-// Due to the properties of Word, a seemingly equal vale is not actually     //
-// equal unless its type is uint32_t. Size matters.                          //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
+/*******************************************************************************
+ *                                   Word.h                                    *
+ *                              Author: Fudmottin                              *
+ *                                                                             *
+ * This software is provided 'as-is', without any express or implied warranty. *
+ * In no event will the authors be held liable for any damages arising from    *
+ * the use of this software.                                                   *
+ *                                                                             *
+ * Permission is hereby granted, free of charge, to any person obtaining a     *
+ * copy of this software and associated documentation files (the "Software"),  *
+ * to deal in the Software without restriction, including without limitation   *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense and *
+ * or sell copies of the Software.                                             *
+ *                                                                             *
+ * The Word class is a simple lightweight wrapper for uint32_t. It is intended *
+ * to work like a uint32_t for cryptography. That said, not every possible     *
+ * conversion to uint32_t is defined. Sometimes it will be necessary to use    *
+ * the get() method to return the wrapped uint32_t value. In addition to       *
+ * traditional get() and set() methods, assignment is supported. You can also  *
+ * create a Word object using the constructor: Word w(42).                     *
+ *                                                                             *
+ * Due to properties of Word object, two seemingly equal values may not        *
+ * actually be equal unless their type is either Word or uint32_t. Size        *
+ * matters!                                                                    *
+ *                                                                             *
+ *              This file has been placed into The Public Domain               *
+ *                                                                             *
+ ******************************************************************************/
 
 #pragma once
 
