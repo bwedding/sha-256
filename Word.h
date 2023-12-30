@@ -61,12 +61,11 @@ public:
     // GetBit and SetBit methods
     inline bool getbit(int n) const { return (w >> n) & ONE; }
     inline void setbit(int n, bool b){
-        if(b){
-            w |= (ONE << n);
-        }else{
-            w &= ~(ONE << n);
-        }
+        b ? w |= (ONE << n) : w &= ~(ONE << n);
     }
+
+    // FlipBit method
+    inline void flipbit(int n) {setbit(n, ~getbit(n));}
 
     // comparison operators
     inline bool operator==(const Word& rhs){return this->w == rhs.w;}
