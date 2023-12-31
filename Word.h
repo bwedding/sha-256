@@ -153,6 +153,16 @@ public:
     inline Word operator-(const Word& rhs) { return this->w - rhs.w; }
     inline Word operator-(const uint32_t rhs) { return this->w - rhs; }
 
+    // * and / operators
+    inline Word operator*(const Word& rhs) { return this->w * rhs.w; }
+    inline Word operator*(const uint32_t rhs) { return this->w * rhs; }
+    inline Word operator/(const Word& rhs) { return this->w / rhs.w; }
+    inline Word operator/(const uint32_t rhs) { return this->w / rhs; }
+
+    // % operator
+    inline Word operator%(const Word& rhs) { return this->w % rhs.w; }
+    inline Word operator%(const uint32_t rhs) { return this->w % rhs; }
+
     // Output opperator for std::ostream
     friend std::ostream& operator<<(std::ostream& os, const Word& obj) {
         os << obj.w;
