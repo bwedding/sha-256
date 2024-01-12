@@ -30,10 +30,11 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
+#include <bit>
+
 
 class Word {
-private:
+
     uint32_t w;
     static constexpr uint32_t ONE = 1; // Named constant
 
@@ -42,126 +43,118 @@ public:
     Word() : w(0) {}
 
     // Constructor that allows initialization with an unsigned int value.
-    Word(uint32_t val) : w(val) {}
+    Word(const uint32_t val) : w(val) {}
 
     // Copy constructor which copies value from another Word object into this one.
-    Word(const Word& other): w(other.w) {}
+    Word(const Word& other) : w(other.w) {}
 
     // Destructor - currently does nothing but included for completeness.
-    ~Word() {}
+    ~Word() = default;
 
     // Getter and Setter methods
-    inline uint32_t get() const { return w; }
-    inline void set(unsigned int v) { w = static_cast<uint32_t>(v); }
+    [[nodiscard]] uint32_t get() const { return w; }
+    void set(unsigned int v) { w = static_cast<uint32_t>(v); }
 
     // Bitwise rotate left and right operations ; use -std=c++20 option
-    inline Word rotl(int n) { return std::rotl(w, n); }
-    inline Word rotr(int n) { return std::rotr(w, n); }
+    Word rotl(int n) const { return std::rotl(w, n); }
+    Word rotr(int n) const { return std::rotr(w, n); }
 
-    // GetBit and SetBit methods
-    inline bool getbit(int n) const { return (w >> n) & ONE; }
-    inline void setbit(int n, bool b){
-        b ? w |= (ONE << n) : w &= ~(ONE << n);
-    }
+    bool getbit(int n) const { return (w >> n) & ONE; }
 
-    // FlipBit method
-    inline void flipbit(int n) {setbit(n, ~getbit(n));}
+    void flipbit(int n) { w ^= (ONE << n); }
 
     // comparison operators
-    inline bool operator==(const Word& rhs){return this->w == rhs.w;}
-    inline bool operator==(const uint32_t rhs){return this->w == rhs;}
-    inline bool operator!=(const Word& rhs){return this->w != rhs.w;}
-    inline bool operator!=(const uint32_t rhs){return this->w != rhs;}
+    bool operator==(const Word& rhs) const { return this->w == rhs.w; }
+    bool operator==(const uint32_t rhs) const { return this->w == rhs; }
+    bool operator!=(const Word& rhs) const { return this->w != rhs.w; }
+    bool operator!=(const uint32_t rhs) const { return this->w != rhs; }
 
 
     // logical operators
-    inline Word operator|(const Word& rhs){return this->w | rhs.w;}
-    inline Word operator|(const uint32_t rhs){return this->w | rhs;}
+    Word operator|(const Word& rhs)  const { return this->w | rhs.w; }
+    Word operator|(const uint32_t rhs)  const { return this->w | rhs; }
 
-    inline Word operator&(const Word& rhs){return this->w & rhs.w;}
-    inline Word operator&(const uint32_t rhs){return this->w & rhs;}
+    Word operator&(const Word& rhs)  const { return this->w & rhs.w; }
+    Word operator&(const uint32_t rhs) const { return this->w & rhs; }
 
-    inline Word operator^(const Word& rhs){return this->w ^ rhs.w;}
-    inline Word operator^(const uint32_t rhs){return this->w ^ rhs;}
+    Word operator^(const Word& rhs)  const { return this->w ^ rhs.w; }
+    Word operator^(const uint32_t rhs)  const { return this->w ^ rhs; }
 
-    inline Word operator<<(const Word& rhs) { return w << rhs.w; }
-    inline Word operator<<(const uint32_t rhs) { return w << rhs; }
+    Word operator<<(const Word& rhs) const { return w << rhs.w; }
+    Word operator<<(const uint32_t rhs) const { return w << rhs; }
 
-    inline Word operator>>(const Word& rhs) { return w >> rhs.w; }
-    inline Word operator>>(const uint32_t rhs) { return w >> rhs; }
+    Word operator>>(const Word& rhs) const { return w >> rhs.w; }
+    Word operator>>(const uint32_t rhs) const { return w >> rhs; }
 
-    inline Word operator~() const { return Word(~w); }
+    Word operator~() const { return Word(~w); }
 
-    // assignmennt operators
-    inline Word& operator=(const uint32_t val){
+    // assignment operators
+    Word& operator=(const uint32_t val) {
         this->w = val;
         return *this;
     }
-    inline Word& operator=(const Word& other){
-        this->w = other.w;         
-        return *this;
-    }
+    Word& operator=(const Word& other) = default;
 
-    inline Word& operator|=(const uint32_t val){
+    Word& operator|=(const uint32_t val) {
         this->w |= val;
         return *this;
     }
-    inline Word& operator|=(const Word& other){
+    Word& operator|=(const Word& other) {
         this->w |= other.w;
         return *this;
     }
 
-    inline Word& operator&=(const uint32_t val){
-      this->w &= val;
-      return *this;
+    Word& operator&=(const uint32_t val) {
+        this->w &= val;
+        return *this;
     }
-    inline Word& operator&=(const Word& other){
-      this->w &= other.w;
-      return *this;
-    }
-
-    inline Word& operator^=(const uint32_t val){
-      this->w ^= val;
-      return *this;
-    }
-    inline Word& operator^=(const Word& other){
-      this->w ^= other.w;
-      return *this;
+    Word& operator&=(const Word& other) {
+        this->w &= other.w;
+        return *this;
     }
 
-    inline Word& operator<<=(const Word& rhs) { 
+    Word& operator^=(const uint32_t val) {
+        this->w ^= val;
+        return *this;
+    }
+    Word& operator^=(const Word& other) {
+        this->w ^= other.w;
+        return *this;
+    }
+
+    Word& operator<<=(const Word& rhs) {
         w <<= rhs.w;
         return *this;
     }
-    inline Word& operator<<=(const uint32_t rhs) {
+    Word& operator<<=(const uint32_t rhs) {
         w <<= rhs;
-        return *this; 
+        return *this;
     }
 
-    inline Word& operator>>=(const Word& other){
+    Word& operator>>=(const Word& other) {
         this->w >>= other.w;
         return *this;
     }
-    inline Word& operator>>=(const uint32_t val){
+    Word& operator>>=(const uint32_t val) {
         this->w >>= val;
         return *this;
-    }  
+    }
 
     // + and - operators
-    inline Word operator+(const Word& rhs) { return this->w + rhs.w; }
-    inline Word operator+(const uint32_t rhs) { return this->w + rhs; }
-    inline Word operator-(const Word& rhs) { return this->w - rhs.w; }
-    inline Word operator-(const uint32_t rhs) { return this->w - rhs; }
+    Word operator+(const Word& rhs) const { return this->w + rhs.w; }
+    Word operator+(const uint32_t rhs) const { return this->w + rhs; }
+    Word operator-(const Word& rhs) const { return this->w - rhs.w; }
+    Word operator-(const uint32_t rhs) const { return this->w - rhs; }
 
     // * and / operators
-    inline Word operator*(const Word& rhs) { return this->w * rhs.w; }
-    inline Word operator*(const uint32_t rhs) { return this->w * rhs; }
-    inline Word operator/(const Word& rhs) { return this->w / rhs.w; }
-    inline Word operator/(const uint32_t rhs) { return this->w / rhs; }
+    Word operator*(const Word& rhs) const { return this->w * rhs.w; }
+    Word operator*(const uint32_t rhs) const { return this->w * rhs; }
+    Word operator/(const Word& rhs) const { return this->w / rhs.w; }
+    Word operator/(const uint32_t rhs) const { return this->w / rhs; }
 
     // % operator
-    inline Word operator%(const Word& rhs) { return this->w % rhs.w; }
-    inline Word operator%(const uint32_t rhs) { return this->w % rhs; }
+    Word operator%(const Word& rhs) const { return this->w % rhs.w; }
+    Word operator%(const uint32_t rhs) const { return this->w % rhs; }
 
     // Output opperator for std::ostream
     friend std::ostream& operator<<(std::ostream& os, const Word& obj) {
@@ -170,4 +163,3 @@ public:
     }
 
 };
-
