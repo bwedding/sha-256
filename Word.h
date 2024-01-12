@@ -59,8 +59,9 @@ public:
     Word rotl(int n) const { return std::rotl(w, n); }
     Word rotr(int n) const { return std::rotr(w, n); }
 
+    // These can be useful
     bool getbit(int n) const { return (w >> n) & ONE; }
-
+    void setbit(int n) { w |= (ONE << n); }
     void flipbit(int n) { w ^= (ONE << n); }
 
     // comparison operators

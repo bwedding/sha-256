@@ -59,12 +59,12 @@ static const Digest H0 = {
 // The 'Ch' function: This is short for "choose" and given three inputs x, y, z
 // returns bits from y where the corresponding bit in x is 1 and bits from z
 // where the corresponding bit in x is 0.
-inline Word Ch(const Word& x, const Word& y, const Word& z) { return (x & y) ^ ((~x) & z); }             // 4.2
+inline Word Ch(const Word& x, const Word& y, const Word& z) { return (x & y) ^ ((~x) & z); }            // 4.2
 
 // The 'Maj' function: Short for "majority", this function takes three inputs
 // x, y, z and for each bit index i if at least two of the bits xi, yi or zi
 // are set to 1 then so is the result mi.
-inline Word Maj(const Word& x, const Word& y, const Word& z) { return (x & y) ^ (x & z) ^ (y & z); }         // 4.3
+inline Word Maj(const Word& x, const Word& y, const Word& z) { return (x & y) ^ (x & z) ^ (y & z); }    // 4.3
 
 // The sigma functions: These are defined as bitwise operations on their input
 // word according to specific rules outlined in section 4 of NIST.FIPS.180-4.
@@ -236,7 +236,7 @@ Digest hashDigest(const Digest& d) {
     return runschedule(s, digest);
 }
 
-// This is just a simple utility function to parse the comman line
+// This is just a simple utility function to parse the command line
 // arguments into a vector<string> type.
 vector<string> arguments(const int argc, char* argv[]) {
     vector<string> res;
