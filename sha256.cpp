@@ -127,7 +127,7 @@ Message pad(uint64_t l)
 // to create a 64 word schedule. Each word in the schedule is referred to
 // as Wt where t is from 0 to 63 inclusive. The schedule is the heart of
 // the algorithm as it is used to modify the initial hash value (H0) and
-// then each of the intermendiate digests produced when processing each
+// then each of the intermediate digests produced when processing each
 // block.
 Schedule schedule(const Block& M) {
     Schedule W = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
