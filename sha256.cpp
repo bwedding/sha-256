@@ -27,14 +27,71 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include "Word.h"
+#include <stdlib.h>
+
+#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <chrono>
+using namespace std::chrono;
+
+#if defined(__GNUC__) || defined(__clang__)
+// GCC or Clang
+#define ROTL(x, shift) __builtin_rotateleft32(x, shift)
+#define ROTR(x, shift) __builtin_rotateright32(x, shift)
+#elif defined(_MSC_VER)
+// Microsoft Visual Studio
+#include <stdlib.h> // Required for _rotl and _rotr
+#define ROTL(x, shift) _rotl(x, shift)
+#define ROTR(x, shift) _rotr(x, shift)
+#else
+// Other compilers, fallback to standard C++
+#include <bit> // Required for std::rotl and std::rotr in C++20
+#define ROTL(x, shift) std::rotl(x, shift)
+#define ROTR(x, shift) std::rotr(x, shift)
+#endif
+
+
+class ExecutionTimer
+{
+public:
+    // Use the best steady clock available
+    using Clock = std::conditional_t<high_resolution_clock::is_steady,
+        high_resolution_clock,
+        steady_clock>;
+
+    ExecutionTimer() = default;
+    inline ~ExecutionTimer()
+    {
+        std::string units = " microSeconds";
+        // Determine whether to print uSecs or mSecs or Secs
+        double count = duration_cast<microseconds>(Clock::now() - mStart).count();
+        if (count > 1000)
+        {
+            // Convert to milliseconds
+            units = " milliSeconds";
+            count /= 1000.0f;
+            if (count > 1000)
+            {
+                // Convert to seconds
+                units = " Seconds";
+                count /= 1000.0f;
+            }
+        }
+
+        std::cout
+            << "Elapsed: " << count << units.data() << std::endl;
+    }
+private:
+    Clock::time_point mStart = Clock::now();
+};
 
 // Type aliases to match the wording in the NIST.FIPS.180-4 SHA-256 specification.
-using SHA256_Constants = const std::array<Word, 64>;
-using Digest = std::array<Word, 8>;
+using SHA256_Constants = const std::array<uint32_t, 64>;
+using Digest = std::array<uint32_t, 8>;
 using Message = std::vector<unsigned char>;
-using Block = std::array<Word, 16>;
-using Schedule = std::array<Word, 64>;
+using Block = std::array<uint32_t, 16>;
+using Schedule = std::array<uint32_t, 64>;
 
 // Section 4.4.2 SHA-256 Constants
 //
@@ -80,22 +137,24 @@ static const Digest H0 = {
 // The 'Ch' function: This is short for "choose" and given three inputs x, y, z
 // returns bits from y where the corresponding bit in x is 1 and bits from z
 // where the corresponding bit in x is 0.
-inline Word Ch(const Word& x, const Word& y, const Word& z) { return (x & y) ^ ((~x) & z); }            // 4.2
+inline uint32_t Ch(const uint32_t& x, const uint32_t& y, const uint32_t& z) { return (x & y) ^ ((~x) & z); }            // 4.2
 
 // The 'Maj' function: Short for "majority", this function takes three inputs
 // x, y, z and for each bit index i if at least two of the bits xi, yi or zi
 // are set to 1 then so is the result mi.
-inline Word Maj(const Word& x, const Word& y, const Word& z) { return (x & y) ^ (x & z) ^ (y & z); }    // 4.3
+inline uint32_t Maj(const uint32_t& x, const uint32_t& y, const uint32_t& z) { return (x & y) ^ (x & z) ^ (y & z); }    // 4.3
 
 // The sigma functions: These are defined as bitwise operations on their input
 // word according to specific rules outlined in section 4 of NIST.FIPS.180-4.
 // They are used as part of generating a message schedule from a block of input
 // data when calculating a SHA-256 hash. The suffixes are the part of the
 // specification that defines each sigma function.
-inline Word sigma_4_4(const Word& x) { return x.rotr(2) ^ x.rotr(13) ^ x.rotr(22); } // 4.4
-inline Word sigma_4_5(const Word& x) { return x.rotr(6) ^ x.rotr(11) ^ x.rotr(25); } // 4.5
-inline Word sigma_4_6(const Word& x) { return x.rotr(7) ^ x.rotr(18) ^ (x >> 3); }   // 4.6
-inline Word sigma_4_7(const Word& x) { return x.rotr(17) ^ x.rotr(19) ^ (x >> 10); } // 4.7
+// std::rotl(w, n);
+static auto sigma_4_4(const uint32_t& x) { return ROTR(x, 2)  ^ ROTR(x, 13) ^ ROTR(x, 22); } // 4.4
+static auto sigma_4_5(const uint32_t& x) { return ROTR(x, 6)  ^ ROTR(x, 11) ^ ROTR(x, 25); } // 4.5
+static auto sigma_4_6(const uint32_t& x) { return ROTR(x, 7)  ^ ROTR(x, 18) ^ (x >> 3); }   // 4.6
+static auto sigma_4_7(const uint32_t& x) { return ROTR(x, 17) ^ ROTR(x, 19) ^ (x >> 10); } // 4.7
+
 
 // 5.1 Padding The Message: The purpose of this padding is to ensure that the
 // padded message is a multiple of 512 bits. Padding can be inserted before hash
@@ -120,19 +179,19 @@ Message pad(uint64_t l)
     {
         // This is an annoying case. The message requires padding and adding an
         // extra 512 bit block to the end. Pad remainder of block and add new block
-        const int k = 960 - (l % 1024 + 1);
+        const size_t k = 960 - (l % 1024 + 1);
         padding.resize(k / 8 + 1, 0);
     }
     else
     {
         // This is a typical case. We add a 1 bit and zeros plus the length
         // of the message in bits.
-        const int k = 448 - (l % 512 + 1);
+        const size_t k = 448 - (l % 512 + 1);
         padding.resize(k / 8 + 1, 0);
     }
 
     // reinterpret_cast to treat the integer as an array of bytes
-    auto bytes = reinterpret_cast<unsigned char*>(&l);
+    const auto bytes = reinterpret_cast<unsigned char*>(&l);
 
     // Reverse the byte order and add to the vector
     for (int i = sizeof(l) - 1; i >= 0; --i)
@@ -151,20 +210,13 @@ Message pad(uint64_t l)
 // then each of the intermediate digests produced when processing each
 // block.
 Schedule schedule(const Block& M) {
-    Schedule W = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+    Schedule W = {};
 
-    int t = 0;
-    do {
-        W[t] = M[t];
-        t++;
-    } while (t < 16);
-    do {
+    // Copy the first 16 elements from M to W
+    std::ranges::copy(M, W.begin());
+    for (int t = 16; t < 64; ++t) {
         W[t] = sigma_4_7(W[t - 2]) + W[t - 7] + sigma_4_6(W[t - 15]) + W[t - 16];
-        t++;
-    } while (t < 64);
+    }
 
     return W;
 }
@@ -173,24 +225,26 @@ Schedule schedule(const Block& M) {
 // Run the message schedule. This does the work of producing the next
 // digest value from the current digest.
 Digest runschedule(const Schedule& W, Digest& H) {
-    Word a(H[0]), b(H[1]), c(H[2]), d(H[3]),
+
+    uint32_t a(H[0]), b(H[1]), c(H[2]), d(H[3]),
         e(H[4]), f(H[5]), g(H[6]), h(H[7]);
 
-    for (int t = 0; t < 64; t++) {
-        Word T1(h + sigma_4_5(e) + Ch(e, f, g) + K[t] + W[t]);
-        Word T2(sigma_4_4(a) + Maj(a, b, c));
+    for (int t = 0; t < 64; t++) 
+    {
+	    const uint32_t T1(h + sigma_4_5(e) + Ch(e, f, g) + K[t] + W[t]);
+        const uint32_t T2(sigma_4_4(a) + Maj(a, b, c));
         h = g; g = f; f = e; e = d + T1; d = c; c = b;
         b = a; a = T1 + T2;
     }
 
-    H[0] = a + H[0];
-    H[1] = b + H[1];
-    H[2] = c + H[2];
-    H[3] = d + H[3];
-    H[4] = e + H[4];
-    H[5] = f + H[5];
-    H[6] = g + H[6];
-    H[7] = h + H[7];
+    H[0] += a;
+    H[1] += b;
+    H[2] += c;
+    H[3] += d;
+    H[4] += e;
+    H[5] += f;
+    H[6] += g;
+    H[7] += h ;
 
     return H;
 }
@@ -202,7 +256,8 @@ Digest runschedule(const Schedule& W, Digest& H) {
 // also affect how the padding is done as it has to tack data
 // onto the end of the message so that it is an integer multiple
 // of 512 bits (16 words).
-Digest message(Message& msg) {
+Digest message(Message& msg)
+{
     uint64_t  messagelength = msg.size() * 8;
     Digest digest = H0; // The initial digest value is set.
 
@@ -213,10 +268,10 @@ Digest message(Message& msg) {
     std::ranges::copy(padding, std::back_inserter(msg));
 
     // Parse the message 64 bytes at a time and process each block.
-    int i = 0, j = 0;
+    size_t i = 0, j = 0;
     do {
-        Block B;
-        Word w;
+        Block B = {};
+        uint32_t w = 0;
 
         do {
             const unsigned char a = msg[i++];
@@ -242,15 +297,16 @@ Digest message(Message& msg) {
 
 // This is a convenience function. Bitcoin uses sha256(sha256(data)).
 // Since digests are a fixed 256 bit length, we already know the padding.
-Digest hashDigest(const Digest& d) {
+Digest hashDigest(const Digest& d)
+{
     Digest digest = H0;
     const Digest startPad = { 0x80000000,0x00000000,0x00000000,0x00000000,
                         0x00000000,0x00000000,0x00000000,0x00000200 };
     Block B;
 
     int i = 0;
-    for (const auto w : d) B[i++] = w;
-    for (const auto w : startPad) B[i++] = w;
+    for (const auto& w : d) B[i++] = w;
+    for (const auto& w : startPad) B[i++] = w;
 
     const Schedule s = schedule(B);
     return runschedule(s, digest);
@@ -273,7 +329,8 @@ std::vector<std::string> arguments(const int argc, char* argv[]) {
 // practice, one would use a library function or utility like sha2
 // to calculate the hash/digest of a file. This is just an educational
 // example for acedemic purposes only.
-int main(const int argc, char* argv[]) {
+int main(const int argc, char* argv[])
+{
     try {
         const std::vector<std::string> args = arguments(argc, argv);
 
@@ -314,18 +371,21 @@ int main(const int argc, char* argv[]) {
             infile.read(reinterpret_cast<char*>(msg.data()), fileSize);
 
             infile.close();
-            Digest digest = message(msg);
-
-            if (doublehash)
             {
-                digest = hashDigest(digest);
-                std::cout << " double hashed";
-            }
+                ExecutionTimer tm;
+                Digest digest = message(msg);
 
-            std::cout << "SHA-256 (" << file << ") = ";
-            for (const auto& w : digest)
-                std::cout << std::setw(8) << std::setfill('0') << std::hex << w;
-            std::cout << std::endl;
+	            if (doublehash)
+	            {
+	                digest = hashDigest(digest);
+	                std::cout << " double hashed";
+	            }
+
+	            std::cout << "SHA-256 (" << file << ") = ";
+	            for (const auto& w : digest)
+	                std::cout << std::setw(8) << std::setfill('0') << std::hex << w;
+	            std::cout << std::endl;
+            }
 
             msg = {};
         }
