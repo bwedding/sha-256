@@ -1,3 +1,26 @@
+/*******************************************************************************
+ *                                  sha256.cpp                                 *
+ *                              Author: Fudmottin                              *
+ *                                                                             *
+ * This software is provided 'as-is', without any express or implied warranty. *
+ * In no event will the authors be held liable for any damages arising from    *
+ * the use of this software.                                                   *
+ *                                                                             *
+ * Permission is hereby granted, free of charge, to any person obtaining a     *
+ * copy of this software and associated documentation files (the "Software"),  *
+ * to deal in the Software without restriction, including without limitation   *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense and *
+ * or sell copies of the Software.                                             *
+ *                                                                             *
+ *                   SHA-256 As defined by NIST.FIPS.180-4                     *
+ *                     A great visualizer can be found at                      *
+ *                                                                             *
+ *                        https://sha256algorithm.com                          *
+ *                                                                             *
+ *              This file has been placed into The Public Domain               *
+ *                                                                             *
+ ******************************************************************************/
+
 #include <vector>
 #include <array>
 #include <string>
