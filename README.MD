@@ -17,7 +17,7 @@ The standard being implemented can be found in [FIPS PUB 180-4](https://nvlpubs.
 To compile the source, simply type the following at the command line prompt:
 
 ```
-make
+c++ -std=c++20 -O3 -o sha256 sha256.cpp
 ```
 ## Copying
 

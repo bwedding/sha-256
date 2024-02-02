@@ -6,8 +6,6 @@
 #include <fstream>
 #include "Word.h"
 
-using namespace std;
-
 // Type aliases to match the wording in the NIST.FIPS.180-4 SHA-256 specification.
 using SHA256_Constants = const std::array<Word, 64>;
 using Digest = std::array<Word, 8>;
@@ -141,8 +139,7 @@ Schedule schedule(const Block& M) {
         t++;
     } while (t < 16);
     do {
-        Word w = sigma_4_7(W[t - 2]) + W[t - 7] + sigma_4_6(W[t - 15]) + W[t - 16];
-        W[t] = w;
+        W[t] = sigma_4_7(W[t - 2]) + W[t - 7] + sigma_4_6(W[t - 15]) + W[t - 16];
         t++;
     } while (t < 64);
 
@@ -190,13 +187,13 @@ Digest message(Message& msg) {
     const Message padding = pad(messagelength);
 
     // The padding is added on to the end of the message.
-    ranges::copy(padding, std::back_inserter(msg));
+    std::ranges::copy(padding, std::back_inserter(msg));
 
     // Parse the message 64 bytes at a time and process each block.
     int i = 0, j = 0;
     do {
-        Block B = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-        Word w = 0;
+        Block B;
+        Word w;
 
         do {
             const unsigned char a = msg[i++];
@@ -226,7 +223,7 @@ Digest hashDigest(const Digest& d) {
     Digest digest = H0;
     const Digest startPad = { 0x80000000,0x00000000,0x00000000,0x00000000,
                         0x00000000,0x00000000,0x00000000,0x00000200 };
-    Block B = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+    Block B;
 
     int i = 0;
     for (const auto w : d) B[i++] = w;
@@ -238,8 +235,8 @@ Digest hashDigest(const Digest& d) {
 
 // This is just a simple utility function to parse the command line
 // arguments into a vector<string> type.
-vector<string> arguments(const int argc, char* argv[]) {
-    vector<string> res;
+std::vector<std::string> arguments(const int argc, char* argv[]) {
+    std::vector<std::string> res;
 
     for (int i = 1; i < argc; i++)
         res.emplace_back(argv[i]);
@@ -255,17 +252,17 @@ vector<string> arguments(const int argc, char* argv[]) {
 // example for acedemic purposes only.
 int main(const int argc, char* argv[]) {
     try {
-        const vector<string> args = arguments(argc, argv);
+        const std::vector<std::string> args = arguments(argc, argv);
 
         if (argc == 1) {
-            cout << "SHA-256 algorithm for educational purposes only!\n"
-                << "$ sha256 [-] file1 [file2 ...]\n\n"
-                << "Reads each file and provides a SHA-256 digest.\n"
-                << "The - argument can appear anywhere in the argument\n"
-                << "list. Files appearing after the - will be double hashed.\n"
-                << "Bitcoin does this sha256(sha256(data)).\n"
-                << "The output is a text hex representation of the "
-                << "SHA-256 message digest.\n";
+            std::cout << "SHA-256 algorithm for educational purposes only!\n"
+                      << "$ sha256 [-] file1 [file2 ...]\n\n"
+                      << "Reads each file and provides a SHA-256 digest.\n"
+                      << "The - argument can appear anywhere in the argument\n"
+                      << "list. Files appearing after the - will be double hashed.\n"
+                      << "Bitcoin does this sha256(sha256(data)).\n"
+                      << "The output is a text hex representation of the "
+                      << "SHA-256 message digest.\n";
             return 0;
         }
 
@@ -275,13 +272,13 @@ int main(const int argc, char* argv[]) {
         bool doublehash = false;
         for (const auto& file : args)
         {
-            if (file == string("-"))
+            if (file == std::string("-"))
             {
                 doublehash = true;
                 continue;
             }
 
-            ifstream infile(file, ios::binary);
+            std::ifstream infile(file, std::ios::binary);
             infile.seekg(0, std::ios::end);
             size_t fileSize = infile.tellg();
 
@@ -299,25 +296,26 @@ int main(const int argc, char* argv[]) {
             if (doublehash)
             {
                 digest = hashDigest(digest);
-                cout << " double hashed";
+                std::cout << " double hashed";
             }
 
-            cout << "SHA-256 (" << file << ") = ";
+            std::cout << "SHA-256 (" << file << ") = ";
             for (const auto& w : digest)
-                cout << setw(8) << setfill('0') << hex << w;
-            cout << endl;
+                std::cout << std::setw(8) << std::setfill('0') << std::hex << w;
+            std::cout << std::endl;
 
             msg = {};
         }
     }
     // Honestly if we catch an error, there is a bug somewhere in the
     // code that I have not caught. Pun intended.
-    catch (out_of_range) {
-        cerr << "range error" << endl;
+    catch (std::out_of_range) {
+        std::cerr << "range error" << std::endl;
     }
     catch (...) {
-        cerr << "unknown exception thrown" << endl;
+        std::cerr << "unknown exception thrown" << std::endl;
     }
 
     return 0;
 }
+

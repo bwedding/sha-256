@@ -62,6 +62,7 @@ public:
     // These can be useful
     bool getbit(int n) const { return (w >> n) & ONE; }
     void setbit(int n) { w |= (ONE << n); }
+    void unsetbit(int n) { w &= ~(ONE << n); }
     void flipbit(int n) { w ^= (ONE << n); }
 
     // comparison operators
