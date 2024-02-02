@@ -27,13 +27,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <stdlib.h>
-
-#include <algorithm>
-#include <iostream>
-#include <vector>
-#include <chrono>
-using namespace std::chrono;
+#include "ExecutionTimer.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 // GCC or Clang
@@ -50,41 +44,6 @@ using namespace std::chrono;
 #define ROTL(x, shift) std::rotl(x, shift)
 #define ROTR(x, shift) std::rotr(x, shift)
 #endif
-
-
-class ExecutionTimer
-{
-public:
-    // Use the best steady clock available
-    using Clock = std::conditional_t<high_resolution_clock::is_steady,
-        high_resolution_clock,
-        steady_clock>;
-
-    ExecutionTimer() = default;
-    inline ~ExecutionTimer()
-    {
-        std::string units = " microSeconds";
-        // Determine whether to print uSecs or mSecs or Secs
-        double count = duration_cast<microseconds>(Clock::now() - mStart).count();
-        if (count > 1000)
-        {
-            // Convert to milliseconds
-            units = " milliSeconds";
-            count /= 1000.0f;
-            if (count > 1000)
-            {
-                // Convert to seconds
-                units = " Seconds";
-                count /= 1000.0f;
-            }
-        }
-
-        std::cout
-            << "Elapsed: " << count << units.data() << std::endl;
-    }
-private:
-    Clock::time_point mStart = Clock::now();
-};
 
 // Type aliases to match the wording in the NIST.FIPS.180-4 SHA-256 specification.
 using SHA256_Constants = const std::array<uint32_t, 64>;
